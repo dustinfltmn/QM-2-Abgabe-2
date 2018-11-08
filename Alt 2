@@ -1,0 +1,162 @@
+######################################################################################################################################################################################
+
+#Dateiname:     Abgabe_2_Dustin_Flottmann
+#Name:          Dustin Flottmann 
+#Matrikelnummer 924370
+#Teilmodul:     Data Science
+
+######################################################################################################################################################################################
+
+#Vorbereitende Schritte
+
+#Laden der notwendigen Pakete
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(readr)
+
+#Leerung der Elemente in der Arbeitsumgebung
+rm(list = ls())
+
+#Aufbau des Datensatzes herausfinden durch Anzeigen der ersten 5 Zeilen
+readLines("/home/df584077/vorlagen/FB09/Buecker/DataScience/Daten/zaehlstelle_neutor_2017.csv",n=5)
+
+#Erkenntnis:
+#Trennzeichen für die Spalten ist ein Komma und die erste Zeile enthält die Spaltenbezeichnungen. Einlesen wird vereinfacht durch die Variante
+#der read.table Funktion "read.csv".
+
+#Einlesen des Datensatzes "Zählstelle Neutor" und abspeichern in dem Dataframe df.counter
+df.counter <- read.csv("/home/df584077/vorlagen/FB09/Buecker/DataScience/Daten/zaehlstelle_neutor_2017.csv", header = TRUE, sep = ",", dec = ".")
+
+#Anzeigen der Struktur des Datensatze
+str(df.counter)
+
+#Anzeigen einer Zusammenfassung des Datensatzes
+summary(df.counter)
+
+######################################################################################################################################################################################
+
+# Aufgabenstellung 1
+# Fahren mehr Radfahrer stadteinwärts oder stadtauswärts? Wie lässt sich das erklären?
+
+# Lösungsweg
+
+  #Vergleich der jeweiligen aufsummierten Spalten
+  (sum(df.counter$Anzahl_stadteinwaerts) > sum(df.counter$Anzahl_stadtauswaerts))
+    
+# Ergebnis:
+# Es fahren mehr Radfahrer stadteinwärts als stadtauswärts. Dies lässt sich dadurch erklärt, dass die Radfahrer aufgrund Ihrer gewählten Route
+# einen anderen Rückweg wählen und nicht an der Zählstation vorbeifahren.
+
+######################################################################################################################################################################################
+
+# Aufgabenstellung 2
+# Ermitteln Sie die durchschnittliche Gesamtanzahl Radfahrer (stadteinwärts plus stadtauswärts) je
+# Wochentag (also Montag, Dienstag, Mittwoch, …). Was fällt Ihnen auf?
+
+# Lösungsweg
+
+  #Hinzufügen der Spalte "Wochentag"
+  df.counter$Wochentag <- wday(df.counter$Datum,  locale = "de_DE.UTF-8", label = TRUE, abbr = FALSE)
+
+  #Aggregation der durchschnittlichen Anzahl Radfahrer stadtein- und auswärts gruppiert nach Wochentagen mithilfe von Pipes 
+  df.counter %>%
+    group_by(Wochentag) %>% 
+    summarise(Anzahl_Durschnitt = mean(Anzahl, na.rm = TRUE)*24)
+  
+# Ergebnis:
+# Es fällt auf, dass insbesondere am Wochenende deutlich weniger Radfahrer an den Messstationen vorbeifahren. Vermutlich liegt dies daran,
+# dass an Werktagen deutlich mehr Münsteraner zur Arbeit, sowie Studierende zur Universität fahren.
+  
+######################################################################################################################################################################################
+
+# Aufgabenstellung 3
+# Ermitteln Sie getrennt voneinander die durchschnittliche Anzahl stadteinwärts und stadtauswärts fahrender Radfahrer 
+# je Uhrzeit (gerundet auf volle Stunden). Wie interpretieren Sie das Ergebnis?
+
+# Lösungsweg
+      
+  #Hinzufügen der Spalte "Stunde"
+  df.counter$Stunde <- hour(df.counter$Datum)
+  
+  #Aggregation der durchschnittlichen Anzahl Radfahrer stadtein- und auswärts gruppiert nach vollen Stunden mithilfe von Pipes 
+  df.counter %>%
+      group_by(Stunde) %>% 
+      summarise(Durchschnitt_einwaerts = mean(Anzahl_stadteinwaerts, na.rm = TRUE),
+                Durchschnitt_auswaerts = mean(Anzahl_stadtauswaerts, na.rm = TRUE)) %>% 
+      print(n = 24, width = Inf)
+  
+# Ergebnis:
+# Es fällt auf, dass ab 06:00 Uhr bis 15:00 Uhr deutlich mehr Personen stadteinwärts fahren und ab dann umgekehrt mehr Personen stadtauswärts fahren.
+# Dies ist möglicherweise mit berufstätigen Personen und Studierenden auf dem Weg zur Arbeit, in die Uni oder zum Einkaufen in der Stadt zu begründen bzw. mit dem Weg nach
+# Hause zu begründen.
+  
+######################################################################################################################################################################################
+  
+# Aufgabenstellung 4
+# Ermitteln Sie die Gesamtanzahl Radfahrer (stadteinwärts plus stadtauswärts) je Wochentag und
+# Stunde in einer Kontingenztafel. Wie könnten Sie herausfinden, ob es einen statistischen Zusammenhang zwischen Uhrzeit und Wochentag beim Verkehrsaufkommen gibt?  
+
+# Lösungsweg
+      
+  #Darstellung der Kontingenztafel
+  #Anwendung der Summenfunktion auf die Elemente in den Spalten Wochentag und Stunde auf die Elemente in der Spalte Anzahl mit der Funktion 'tapply'.
+  tapply(df.counter$Anzahl, list(df.counter$Wochentag, df.counter$Stunde),sum)
+  
+# Ergebnis:
+# Bei Betrachtung der Konzingenztafel mit der Gesamtzahl Radfahrer je Wochentag fällt auf, dass insbesondere in den Nachtzeiten deutliche Unterschiede
+# festzustellen sind. Man würde vermuten, dass diese relativ gleichverteilt sind, allerdings sind am Wochenende und auch am Donnerstag deutlich mehr
+# Radfahrer unterwegs im Vergleich zu den anderen Tagen der Woche. Zu erklären ist dies möglicherweise damit, dass insbesondere die Studierenden aus Münster Freitags,
+# Samstags und häufig auch am Mittwoch feiern gehen und dann zu später Stunde noch mit dem Fahrrad unterwegs sind. 
+  
+######################################################################################################################################################################################  
+
+# Aufgabenstellung 5  
+# Bestimmen Sie die Korrelationsmatrix der der Anzahl stadteinwärts und -auswärts fahrenden Radfahrer, Temperatur und Windstärke  
+# Nutzung der cor- Funktion und als "Person" als Korrelationsmaß, da alle Werte metrisch sind
+  
+# Lösungsweg / Ergebnis
+  cor(df.counter[,c("Anzahl_stadteinwaerts", "Anzahl_stadtauswaerts", "Temperatur", "Windstaerke")], method = "pearson" , use="complete.obs")
+  
+######################################################################################################################################################################################
+  
+# Aufgabenstellung 6    
+# In der Datei feiertage.RData fnden Sie eine Übersicht über die Feiertage in 2017 (jeweils den Namen des Feiertags und am wievielten Tag im Jahr dieser Feiertag in 2017 lag).
+# Führen Sie diese Tabelle mit den Daten der Zählstelle mit Hilfe eines Joins über die Spalte Tag zusammen. 
+# Stellen Sie anschließend die durchschnittliche Anzahl Radfahrer an Feiertagen, Wochenenden und Werktagen gegenüber.
+# Beschreiben Sie das Ergebnis!
+
+# Lösungsweg
+  
+  #Laden des Datensatzes der Wochentage
+  load("~/vorlagen/FB09/Buecker/DataScience/Daten/feiertage.RData")
+  
+  #Erstellen der Spalte Tag im Datensatz der Zählstelle df.counter mit yday Funktion, welche den Tag im Jahr angibt
+  df.counter$Tag <- yday(df.counter$Datum)
+  
+  #Verknüpfung der Tabelle Feiertage mit den Daten der Zählstelle in dem neuen Dataframe df.counter mithilfe von full_join über die in beiden Datensätzen
+  #vorhandene Spalte "Tag". 
+  df.counter <- df.counter %>%
+                  full_join(feiertage, by = "Tag")
+ 
+  #Berechnung der durchschnittlichen Radfahrer an Wertagen
+  df.counter %>% 
+    filter(Wochentag != "Sonntag" & Wochentag != "Samstag" & is.na(Feiertag) == TRUE) %>% 
+    summarise(Werktag_Durchschnitt = mean(Anzahl)*24)
+  
+  #Berechnung der durchschnittlichen Radfahrer an Wochenenden ohne Feiertage
+  df.counter %>% 
+    filter(Wochentag == "Sonntag" | Wochentag == "Samstag" & is.na(Feiertag) != TRUE) %>% 
+    summarise(Wochenende_Durchschnitt = mean(Anzahl)*24)  
+
+  #Berechnung der durchschnittlichen Radfahrer an Wochenenden
+  df.counter %>% 
+    filter(is.na(Feiertag) == FALSE) %>% 
+    summarise(Feiertag_Durchschnitt = mean(Anzahl)*24)  
+  
+# Ergebnis:
+# Die Berechnung der zeigt, dass an einem Werktag durchschnittlich deutlich mehr Radfahrer die Zählstelle passieren als am Wochenende.
+# Durchschnittlich am wenigsten Radfahrer sind an Feiertagen unterwegs.
+  
+######################################################################################################################################################################################
+  
